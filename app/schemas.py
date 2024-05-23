@@ -1,7 +1,6 @@
 from pydantic import BaseModel, validator
 from typing import Optional
-from datetime import datetime
-from models import GoalType, PeriodUnit
+from app.models import GoalType, PeriodUnit
 
 class GoalBase(BaseModel):
     user_id: int
