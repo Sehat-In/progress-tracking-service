@@ -1,6 +1,6 @@
 from database import Base
 from enum import Enum
-from sqlalchemy import Column, Integer, Float, Boolean, Enum as EnumSQL, text
+from sqlalchemy import Column, Integer, Float, Boolean, Enum as EnumSQL, text, ForeignKey
 from sqlalchemy.orm import relationship
 
 class GoalType(Enum):
@@ -19,7 +19,7 @@ class Goal(Base):
     __tablename__ = "goals"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('user_progress.user_id'), nullable=False, index=True)
     
     goal_type = Column(EnumSQL(GoalType), nullable=False)
     value = Column(Float, nullable=False)

@@ -1,6 +1,7 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, root_validator
 from typing import Optional
 from models import GoalType, PeriodUnit
+from fastapi import HTTPException
 
 class GoalBase(BaseModel):
     user_id: int
@@ -16,19 +17,22 @@ class GoalCreate(GoalBase):
     pass
 
 class GoalUpdate(BaseModel):
-    goal_type: Optional[GoalType]
-    value: Optional[float]
-    period: Optional[int]
-    period_unit: Optional[PeriodUnit]
-    progress: Optional[float]
-    progress_percentage: Optional[float]
-    is_completed: Optional[bool]
+    goal_type: Optional[GoalType] = None
+    value: Optional[float] = None
+    period: Optional[int] = None
+    period_unit: Optional[PeriodUnit] = None
+    progress: Optional[float] = None
+    progress_percentage: Optional[float] = None
+    is_completed: Optional[bool] = None
 
-    @validator("goal_type", "value", "period", "period_unit", "progress", "progress_percentage", "is_completed", pre=True)
-    def at_least_one_field_must_be_provided(cls, v, values):
-        if all(v is None for v in values.values()):
-            raise ValueError("At least one field must be provided for update")
-        return v
+    @root_validator(pre=True)
+    def check_at_least_one_field(cls, values):
+        if not any(value is not None for value in values.values()):
+            raise HTTPException(
+                status_code=400, 
+                detail="At least one field must be provided for update"
+            )
+        return values
 
 class Goal(GoalBase):
     id: int
