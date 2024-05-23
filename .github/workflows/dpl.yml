@@ -44,8 +44,8 @@ jobs:
       - name: SSH to google cloud
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{secrets.GCP_USERNAME}}@${{secrets.EXTERNAL_IP}} "
-          sudo docker container rm -f sehatin_main_service || true &&
+          sudo docker container rm -f sehatin_progress_service || true &&
           sudo docker image rm -f ${{secrets.DOCKER_USERNAME}}/${{secrets.DOCKER_REPOSITORY}}:latest || true &&
           sudo docker pull ${{secrets.DOCKER_USERNAME}}/${{secrets.DOCKER_REPOSITORY}}:latest &&
-          sudo docker run --name sehatin_main_service -d -p 3005:8000 ${{secrets.DOCKER_USERNAME}}/${{secrets.DOCKER_REPOSITORY}}:latest"
+          sudo docker run --name sehatin_progress_service -d -p 3002:3002 ${{secrets.DOCKER_USERNAME}}/${{secrets.DOCKER_REPOSITORY}}:latest"
     if: github.ref == 'refs/heads/main'
