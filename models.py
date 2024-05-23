@@ -1,6 +1,6 @@
-from app.database import Base
+from database import Base
 from enum import Enum
-from sqlalchemy import Column, String, Integer, Float, Boolean, Enum as EnumSQL, TIMESTAMP, text
+from sqlalchemy import Column, Integer, Float, Boolean, Enum as EnumSQL, text
 from sqlalchemy.orm import relationship
 
 class GoalType(Enum):
