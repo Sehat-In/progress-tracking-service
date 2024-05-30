@@ -22,7 +22,6 @@ class GoalUpdate(BaseModel):
     period: Optional[int] = None
     period_unit: Optional[PeriodUnit] = None
     progress: Optional[float] = None
-    progress_percentage: Optional[float] = None
     is_completed: Optional[bool] = None
 
     @root_validator(pre=True)

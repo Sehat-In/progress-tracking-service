@@ -47,6 +47,9 @@ def update_goal(goal_id: int, goal_update: schemas.GoalUpdate, db: Session = Dep
     for key, value in update_data.items():
         setattr(updated_goal, key, value)
 
+        if key == 'progress':
+            setattr(updated_goal, 'progress_percentage', (updated_goal.progress / updated_goal.value) * 100)
+
     db.commit()
     db.refresh(updated_goal)
 
@@ -118,7 +121,7 @@ def clear_user_progress(user_id: int, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user_progress)
         
-        user_goals = db.query(models.Goal).filter(models.Goal.user_id == user_id).first()
+        user_goals = db.query(models.Goal).filter(models.Goal.user_id == user_id)
 
         if user_goals:
             for goal in user_goals:
