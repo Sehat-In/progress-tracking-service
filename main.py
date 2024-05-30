@@ -27,9 +27,20 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+def calculate_overall_progress(goals: list[schemas.Goal]):
+    if not goals:
+        return 0
+
+    total_progress = sum(goal.progress_percentage for goal in goals)
+    overall_progress = total_progress / len(goals)
+    return overall_progress
+
 @router.post("/goals/new-goal/", response_model=schemas.Goal, status_code=status.HTTP_201_CREATED)
 def add_goal(goal: schemas.GoalCreate, db: Session = Depends(get_db)):
-    new_goal = models.Goal(**goal.model_dump())
+    new_goal_data = goal.model_dump()
+    new_goal_data['progress_percentage'] = goal.progress_percentage
+    new_goal = models.Goal(**new_goal_data)
+
     db.add(new_goal)
     db.commit()
     db.refresh(new_goal)
@@ -46,7 +57,7 @@ def update_goal(goal_id: int, goal_update: schemas.GoalUpdate, db: Session = Dep
     update_data = goal_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(updated_goal, key, value)
-
+        
         if key == 'progress':
             setattr(updated_goal, 'progress_percentage', (updated_goal.progress / updated_goal.value) * 100)
 
@@ -87,7 +98,15 @@ def get_all_user_goal(user_id: int, db: Session = Depends(get_db)):
 
 @router.post("/create-progress/", response_model=schemas.UserProgress, status_code=status.HTTP_201_CREATED)
 def create_user_progress(user_progress: schemas.UserProgressCreate, db: Session = Depends(get_db)):
-    new_user_progress = models.UserProgress(**user_progress.model_dump())
+    existing_progress = db.query(models.UserProgress).filter(models.UserProgress.user_id == user_progress.user_id).first()
+
+    if existing_progress:
+        raise HTTPException(status_code=409, detail=f"User with id {user_progress.user_id} has already initialized personal progress.")
+    
+    new_user_progress_data = user_progress.model_dump()
+    new_user_progress_data['overall_progress_percentage'] = 0.0
+    new_user_progress = models.UserProgress(**new_user_progress_data)
+    
     db.add(new_user_progress)
     db.commit()
     db.refresh(new_user_progress)
@@ -95,15 +114,14 @@ def create_user_progress(user_progress: schemas.UserProgressCreate, db: Session 
     return new_user_progress
 
 @router.put("/{user_id}/update-progress/", response_model=schemas.UserProgress, status_code=status.HTTP_200_OK)
-def update_user_progress(user_id: int, user_progress_update: schemas.UserProgressUpdate, db: Session = Depends(get_db)):
+def update_user_progress(user_id: int, db: Session = Depends(get_db)):
     updated_user_progress = db.query(models.UserProgress).filter(models.UserProgress.user_id == user_id).first()
 
     if updated_user_progress is None:
         raise HTTPException(status_code=404, detail=f"User with id {user_id} has not initialized personal progress.")
     
-    update_data = user_progress_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(updated_user_progress, key, value)
+    user_goals = db.query(models.Goal).filter(models.Goal.user_id == user_id).all()
+    updated_user_progress.overall_progress_percentage = calculate_overall_progress(user_goals)
 
     db.commit()
     db.refresh(updated_user_progress)

@@ -10,8 +10,13 @@ class GoalBase(BaseModel):
     period: int
     period_unit: PeriodUnit
     progress: Optional[float] = 0.0
-    progress_percentage: Optional[float] = 0.0
     is_completed: Optional[bool] = False
+
+    @property
+    def progress_percentage(self):
+        if self.value == 0:
+            return 0.0
+        return (self.progress / self.value) * 100
 
 class GoalCreate(GoalBase):
     pass
@@ -35,6 +40,7 @@ class GoalUpdate(BaseModel):
 
 class Goal(GoalBase):
     id: int
+    progress_percentage: float
 
     class Config:
         from_attributes = True
@@ -42,14 +48,12 @@ class Goal(GoalBase):
 
 class UserProgressBase(BaseModel):
     user_id: int
-    overall_progress_percentage: Optional[float] = 0.0
 
 class UserProgressCreate(UserProgressBase):
     pass
 
-class UserProgressUpdate(BaseModel):
-    overall_progress_percentage: float
-
 class UserProgress(UserProgressBase):
+    overall_progress_percentage: float
+    
     class Config:
         from_attributes = True
