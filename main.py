@@ -35,6 +35,18 @@ def calculate_overall_progress(goals: list[schemas.Goal]):
     overall_progress = total_progress / len(goals)
     return overall_progress
 
+def update_user_progress(user_id: int, db: Session = Depends(get_db)):
+    updated_user_progress = db.query(models.UserProgress).filter(models.UserProgress.user_id == user_id).first()
+
+    if updated_user_progress is None:
+        raise HTTPException(status_code=404, detail=f"User with id {user_id} has not initialized personal progress.")
+    
+    user_goals = db.query(models.Goal).filter(models.Goal.user_id == user_id).all()
+    updated_user_progress.overall_progress_percentage = calculate_overall_progress(user_goals)
+
+    db.commit()
+    db.refresh(updated_user_progress)
+
 @router.post("/goals/new-goal/", response_model=schemas.Goal, status_code=status.HTTP_201_CREATED)
 def add_goal(goal: schemas.GoalCreate, db: Session = Depends(get_db)):
     new_goal_data = goal.model_dump()
@@ -44,6 +56,8 @@ def add_goal(goal: schemas.GoalCreate, db: Session = Depends(get_db)):
     db.add(new_goal)
     db.commit()
     db.refresh(new_goal)
+
+    update_user_progress(goal.user_id, db)
 
     return new_goal
 
@@ -64,6 +78,8 @@ def update_goal(goal_id: int, goal_update: schemas.GoalUpdate, db: Session = Dep
     db.commit()
     db.refresh(updated_goal)
 
+    update_user_progress(updated_goal.user_id, db)
+
     return updated_goal
 
 @router.delete("/goals/{goal_id}/delete-goal/", status_code=status.HTTP_200_OK)
@@ -75,6 +91,8 @@ def delete_goal(goal_id: int, db: Session = Depends(get_db)):
     
     db.delete(deleted_goal)
     db.commit()
+
+    update_user_progress(deleted_goal.user_id, db)
 
     return f"Goal with id {goal_id} has been deleted."
 
@@ -96,37 +114,20 @@ def get_all_user_goal(user_id: int, db: Session = Depends(get_db)):
     
     return user_goals
 
-@router.post("/create-progress/", response_model=schemas.UserProgress, status_code=status.HTTP_201_CREATED)
-def create_user_progress(user_progress: schemas.UserProgressCreate, db: Session = Depends(get_db)):
-    existing_progress = db.query(models.UserProgress).filter(models.UserProgress.user_id == user_progress.user_id).first()
+@router.post("/{user_id}/create-progress/", response_model=schemas.UserProgress, status_code=status.HTTP_201_CREATED)
+def create_user_progress(user_id: int, db: Session = Depends(get_db)):
+    existing_progress = db.query(models.UserProgress).filter(models.UserProgress.user_id == user_id).first()
 
     if existing_progress:
-        raise HTTPException(status_code=409, detail=f"User with id {user_progress.user_id} has already initialized personal progress.")
+        return existing_progress
     
-    new_user_progress_data = user_progress.model_dump()
-    new_user_progress_data['overall_progress_percentage'] = 0.0
-    new_user_progress = models.UserProgress(**new_user_progress_data)
+    new_user_progress = models.UserProgress(user_id=user_id)
     
     db.add(new_user_progress)
     db.commit()
     db.refresh(new_user_progress)
 
     return new_user_progress
-
-@router.put("/{user_id}/update-progress/", response_model=schemas.UserProgress, status_code=status.HTTP_200_OK)
-def update_user_progress(user_id: int, db: Session = Depends(get_db)):
-    updated_user_progress = db.query(models.UserProgress).filter(models.UserProgress.user_id == user_id).first()
-
-    if updated_user_progress is None:
-        raise HTTPException(status_code=404, detail=f"User with id {user_id} has not initialized personal progress.")
-    
-    user_goals = db.query(models.Goal).filter(models.Goal.user_id == user_id).all()
-    updated_user_progress.overall_progress_percentage = calculate_overall_progress(user_goals)
-
-    db.commit()
-    db.refresh(updated_user_progress)
-
-    return updated_user_progress
 
 @router.delete("/{user_id}/clear-progress/", status_code=status.HTTP_200_OK)
 def clear_user_progress(user_id: int, db: Session = Depends(get_db)):

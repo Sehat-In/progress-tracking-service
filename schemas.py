@@ -46,13 +46,8 @@ class Goal(GoalBase):
         from_attributes = True
 
 
-class UserProgressBase(BaseModel):
+class UserProgress(BaseModel):
     user_id: int
-
-class UserProgressCreate(UserProgressBase):
-    pass
-
-class UserProgress(UserProgressBase):
     overall_progress_percentage: float
     
     class Config:
