@@ -11,7 +11,7 @@ load_dotenv()
 models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
-origins = ["*"]
+origins = [os.getenv('CORS_ORIGIN')]
 
 app.add_middleware(
     CORSMiddleware,
